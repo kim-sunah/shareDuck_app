@@ -1,68 +1,89 @@
-import React, { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React from "react";
 import styled from "styled-components";
+import { z } from "zod";
+import { Controller, useForm } from "react-hook-form";
+import { Toast, HappyEmoji, WorriedEmoji, CryingEmoji } from "shareduck-ui";
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, "비밀번호를 입력해주세요."),
+  autoLogin: z.boolean(),
+});
 
-const SignIn = () => {
-  // Form state
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    autoLogin: false,
+type FormData = z.infer<typeof schema>;
+
+const SignIn: React.FC = () => {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    trigger,
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      email: "",
+      password: "",
+      autoLogin: false,
+    },
   });
 
-  // Handle input change
-  const handleInputChange = (e: { target: { name: any; value: any } }) => {
-    const { name, value } = e.target;
-    setForm({
-      ...form,
-      [name]: value,
-    });
-  };
-
-  // Handle checkbox change
-  const handleCheckboxChange = (e: { target: { name: any; checked: any } }) => {
-    const { name, checked } = e.target;
-    setForm({
-      ...form,
-      [name]: checked,
-    });
-  };
-
-  // Handle form submission
-  const handleSubmit = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    // Implement form submission logic here
-    console.log("Form submitted", form);
-  };
+  const onSubmit = handleSubmit(async (data) => {
+    // 로그인 처리 로직
+  });
 
   return (
     <Container>
-      <StyledForm onSubmit={handleSubmit}>
+      <StyledForm onSubmit={onSubmit}>
         <h1>로그인</h1>
         <p>이메일과 비밀번호를 입력해주세요!</p>
-        <StyledInput
-          type="email"
+
+        <Controller
           name="email"
-          value={form.email}
-          placeholder="이메일"
-          onChange={handleInputChange}
-          required
-        />
-        <StyledInput
-          type="password"
-          name="password"
-          value={form.password}
-          placeholder="비밀번호"
-          onChange={handleInputChange}
-          required
+          control={control}
+          render={({ field }) => (
+            <>
+              <StyledInput
+                {...field}
+                type="email"
+                placeholder="이메일"
+                onChange={(checkEmail) => {
+                  field.onChange(checkEmail);
+                  trigger("email");
+                }}
+              />
+              {field.value && errors.email ? (
+                <StyledToast variants="error">
+                  <StyledToast.Emoji src={CryingEmoji} alt="이메일 오류" />
+                  <StyledToast.Text content="이메일 형식이 올바르지 않습니다." />
+                </StyledToast>
+              ) : field.value && !errors.email ? (
+                <StyledToast variants="pass">
+                  <StyledToast.Emoji src={HappyEmoji} alt="이메일 유효" />
+                  <StyledToast.Text content="사용 가능한 이메일입니다." />
+                </StyledToast>
+              ) : null}
+            </>
+          )}
         />
 
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => (
+            <StyledInput
+              {...field}
+              type="password"
+              placeholder="비밀번호"
+              isError={!!errors.password}
+            />
+          )}
+        />
+        {errors.password && (
+          <ErrorMessage>{errors.password.message}</ErrorMessage>
+        )}
+
         <StyledCheckbox>
-          <input
-            type="checkbox"
-            name="autoLogin"
-            checked={form.autoLogin}
-            onChange={handleCheckboxChange}
-          />
+          <input type="checkbox" name="autoLogin" />
           <label>자동 로그인</label>
         </StyledCheckbox>
 
@@ -91,8 +112,8 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; /* 화면의 높이를 100%로 설정 */
-  width: 100vw; /* 화면의 너비를 100%로 설정 */
+  height: 100vh;
+  width: 100vw;
   box-sizing: border-box;
 `;
 
@@ -114,14 +135,27 @@ const StyledForm = styled.form`
   }
 `;
 
-const StyledInput = styled.input`
+const StyledInput = styled.input<{ isError?: boolean }>`
   padding: 10px;
   margin-bottom: 15px;
-  border: 1px solid #ccc;
+  border: 1px solid ${(props) => (props.isError ? "red" : "#ccc")};
   border-radius: 5px;
   font-size: 1em;
   width: 100%;
   box-sizing: border-box;
+`;
+
+const ErrorMessage = styled.div`
+  color: red;
+  font-size: 0.85em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "⚠️";
+    margin-right: 5px;
+  }
 `;
 
 const StyledCheckbox = styled.div`
@@ -217,5 +251,8 @@ const StyledNotice = styled.div`
   color: #666;
   text-align: center;
 `;
-
+const StyledToast = styled(Toast)`
+  margin-bottom: 15px;
+  margin-top: -5px;
+`;
 export default SignIn;
